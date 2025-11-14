@@ -1,2 +1,3 @@
 # bggn213_github
-Classwork for bioinformatics class at UCSD
+Classworkfor bioinformatics class at UCSD
+What is this? 
