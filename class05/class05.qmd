@@ -1,0 +1,92 @@
+---
+title: "class05: Data Visualization with GGPLOT"
+author: "Kelsey Fierro A14834315"
+format: pdf
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this 
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+library(ggplot2)
+ggplot(cars)
+library(ggplot2)
+ 
+ggplot(cars) + aes(x=speed, y=dist)
+library(ggplot2)
+ 
+ggplot(cars) + aes(x=speed, y=dist) + geom_point()
+library(ggplot2)
+ 
+ggplot(cars) + aes(x=speed, y=dist) + geom_point() + geom_smooth()
+library(ggplot2)
+ 
+ggplot(cars) + aes(x=speed, y=dist) + geom_point() + geom_smooth(method="lm", se=FALSE)
+library(ggplot2)
+ 
+ggplot(cars) + aes(x=speed, y=dist) + geom_point() + geom_smooth(method="lm", se=FALSE) + labs(title="Cars") + theme_bw()
+
+library(ggplot2)
+ 
+ggplot(cars) + aes(x=speed, y=dist) + geom_point() + geom_smooth(method="lm", se=FALSE) + labs(title="Speed and Stopping Distances of Cars", x="Speed (MPH)", y="Stopping Distance (ft)", subtitle="Your informative subtitle text here", caption="Dataset: 'cars'") + theme_bw()
+
+url <- "https://bioboot.github.io/bimm143_S20/class-material/up_down_expression.txt"
+genes <- read.delim(url)
+head(genes)
+
+nrow(genes[,2])
+NULL
+
+nrow(genes)
+
+colnames(genes)
+    
+ncol(genes)
+
+table(genes[,4])
+
+round(table(genes$State)/nrow(genes) * 100, 2)
+
+ggplot(genes)
+
+ggplot(genes) + aes(x=Condition1, y=Condition2) + geom_point()
+ggplot(genes) + aes(x=Condition1, y=Condition2, col=State) + geom_point()
+p <- ggplot(genes) + aes(x=Condition1, y=Condition2, col=State) + geom_point()
+p + scale_colour_manual(values=c("blue","gray","red"))
+p + scale_colour_manual(values=c("blue","gray","red")) + labs(title="Gene Expression Changes Upon Drug Treatment", x="Control (No drug)", y="Drug Treatment")
+# File location online
+url <- "https://raw.githubusercontent.com/jennybc/gapminder/master/inst/extdata/gapminder.tsv"
+
+gapminder <- read.delim(url)
+
+library(dplyr)
+
+gapminder_2007 <- gapminder %>% filter(year==2007)
+ggplot(gapminder_2007) + aes(x=gdpPercap, y=lifeExp) + geom_point()
+ggplot(gapminder_2007) + aes(x=gdpPercap, y=lifeExp) + geom_point(alpha=0.5)
+ggplot(gapminder_2007) + aes(x=gdpPercap, y=lifeExp, color=continent, size=pop) + geom_point(alpha=0.5)
+ggplot(gapminder_2007) + aes(x=gdpPercap, y=lifeExp, color=pop) + geom_point(alpha=0.5)
+ggplot(gapminder_2007) + aes(x=gdpPercap, y=lifeExp, size=pop) + geom_point(alpha=0.5)
+ggplot(gapminder_2007) + aes(x=gdpPercap, y=lifeExp, size=pop) + geom_point(alpha=0.5) + scale_size_area(max_size=10)
+gapminder_1957 <- gapminder %>% filter(year==1957)
+ggplot(gapminder_1957) + aes(x=gdpPercap, y=lifeExp, color=continent, size=pop) + geom_point(alpha=0.7) + scale_size_area(max_size=15)
+ggplot(gapminder_1957) + aes(x=gdpPercap, y=lifeExp, color=continent, size=pop) + geom_point(alpha=0.7) + scale_size_area(max_size=15)
+```
+
