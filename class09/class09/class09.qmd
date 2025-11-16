@@ -1,0 +1,312 @@
+---
+title: "class09"
+author: "Kelsey Fierro"
+format: pdf
+---
+
+http://www.rcsb.org/
+
+```{r}
+stats <- read.csv("Data Export Summary.csv")
+head(stats)
+```
+
+```{r}
+sum(stats$Other)
+```
+```{r}
+sum(as.numeric(sub(",","", stats$X.ray)))
+```
+This is annoying lets try a different import function from the **readr** package
+(install in console) use package to reopen csv to change the values from characters to numbers
+
+```{r}
+library(readr)
+
+stats <- read_csv("Data Export Summary.csv")
+```
+>Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+Percent Xray
+
+```{r}
+n.total <- sum(stats$Total)
+n.xray <- sum(stats$'X-ray')
+n.em <- sum(stats$'EM')
+
+n.xray/n.total * 100
+```
+```{r}
+round( n.xray/n.total * 100, 2)
+round(n.em/n.total * 100, 2)
+```
+
+
+>Q2: What proportion of structures in the PDB are protein only? Make a barplot overview.
+
+```{r}
+n.protein <- stats$Total[1]
+round( n.protein/n.total * 100, 2)
+
+stats
+library(ggplot2)
+ggplot(stats) +
+  aes('Molecular Type', Total) +
+  geom_col()
+```
+
+
+##Visualizing structure data
+
+The Mol* viewer is embedded in many bioinformatics websites.  The homepage is https://molstar.org
+I can insert any figure or image file using markdown format
+
+![](1HSG.png)
+> Q4: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+Because of Hydrogen bonding, so only the oxygen is most visible.
+
+> Q5: There is a critical “conserved” water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have
+
+It is HOH 308
+
+> Q6: Generate and save a figure clearly showing the two distinct chains of HIV-protease along with the ligand. You might also consider showing the catalytic residues ASP 25 in each chain and the critical water (we recommend “Ball & Stick” for these side-chains). Add this figure to your Quarto document.
+
+![](1HSG2.png)
+
+## Bio3D package for structural bioinformatics
+
+We can use the bio3D package to read and analyze biomolecular data in R:
+
+```{r}
+library(bio3d)
+
+hiv <- read.pdb("1HSG")
+hiv
+```
+> Q7: How many amino acid residues are there in this pdb object? 
+
+198
+
+> Q8: Name one of the two non-protein residues? 
+
+HOH, MK1
+
+> Q9: How many protein chains are in this structure?
+
+2
+
+```{r}
+head(hiv$atom)
+```
+```{r}
+pdbseq(hiv)
+```
+> Q10. Which of the packages above is found only on BioConductor and not CRAN? 
+
+msa
+
+> Q11. Which of the above packages is not found on BioConductor or CRAN?: 
+
+BiocManager
+
+> Q12. True or False? Functions from the devtools package can be used to install packages from GitHub and BitBucket?
+
+TRUE
+
+Lets trip to chain A and get just its sequence:
+
+```{r}
+chainA <- trim.pdb( hiv, chain = "A")
+chainA.seq <- pdbseq(chainA)
+```
+
+Let's blast
+
+```{r blast_hiv, cache=TRUE}
+#blast <- blast.pdb(chainA.seq)
+```
+
+```{r}
+#head(blast$hit.tbl)
+```
+```{r}
+#plot(blast)
+```
+```{r}
+#hits <- plot(blast)
+#hits$pdb.id
+hits <- NULL
+hits$pdb.id <- c('1AKE_A','6S36_A','6RZE_A','3HPR_A','1E4V_A','5EJE_A','1E4Y_A','3X2S_A','6HAP_A','6HAM_A','4K46_A','3GMT_A','4PZL_A')
+```
+
+## Prediction of functional motions
+
+We can run a Normal Mode Analysis (NMA) to predict large scale motions/flexibility/dynamics of any biomolecule that we can read into R.
+
+Let's look at ADK and chain A only!
+
+```{r}
+adk <- read.pdb("1ake")
+
+adk_A <- trim.pdb(adk, chain="A")
+adk_A
+```
+
+```{r}
+m <- nma(adk_A)
+plot(m)
+```
+
+Lets write out a "trajectory" of predicted motion
+```{r}
+mktrj(m, file="adk_nma.pdb")
+```
+
+## Play with 3D viewing in R
+
+We can use the new **bio3dview** package, which is not yet on CRAN, to render interactive 3D views in R and HTML quarto output reports.
+
+To install from GitHub we can use the **pak** package.
+
+```{r}
+pak::pak("bioboot/bio3dview")
+library(bio3dview)
+#view.pdb(adk)
+```
+```{r, cache=TRUE}
+library(bio3d)
+aa <- get.seq("1ake_A")
+```
+
+> Q13. How many amino acids are in this sequence, i.e. how long is this sequence? 
+
+214
+
+# now use this sequence as a query to blast search the PDB to find similar sequences and structures
+
+```{r, cache=TRUE}
+b <- blast.pdb(aa)
+```
+```{r}
+hits <- plot(b)
+```
+
+```{r}
+head(hits$pdb.id)
+```
+```{r}
+hits <- NULL
+hits$pdb.id <- c('1AKE_A', '8BQF_A', '4X8M_A', '6S36_A', '8Q2B_A', '8RJ9_A')
+```
+
+```{r}
+# Download related PDB files
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+# Align related PDBs
+```{r, cache=TRUE}
+pdbs <- pdbaln(files, fit = TRUE, exefile='msa')
+```
+```{r}
+# Vector containing PDB codes for figure axis
+ids <- basename.pdb(pdbs$id)
+#plot(pdbs, labels = ids)
+```
+```{r}
+anno <- pdb.annotate(ids)
+unique(anno$source)
+```
+
+#Perform PCA
+```{r}
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+```
+# Calculate RMSD
+```{r}
+rd <- rmsd(pdbs)
+```
+```{r}
+# Struture-based clustering
+hc.rd <- hclust(dist(rd))
+grps.rd <- cutree(hc.rd, k=3)
+plot(pc.xray, 1:2, col="grey50", bg=grps.rd, pch=21, cex=1)
+```
+
+```{r}
+# Plotting results with ggplot2
+library(ggplot2)
+library(ggrepel)
+
+df <- data.frame(PC1=pc.xray$z[,1],
+                 PC2=pc.xray$z[,2],
+                 col=as.factor(grps.rd),
+                 ids=ids)
+p <- ggplot(df) +
+  aes(PC1, PC2, col=col, label=ids) +
+  geom_point(size=2) +
+  geom_text_repel(max.overlaps = 20) +
+  theme(legend.position = "none")
+p
+```
+```{r}
+# NMA of all structures
+modes <- nma(pdbs)
+```
+
+```{r}
+plot(modes, pdbs, col=grps.rd)
+```
+
+> Q14. What do you note about this plot? Are the black and colored lines similar or different? Where do you think they differ most and why?
+
+The plot's red lines have the most fluctuations while the black and green are most similar.  The black and green most differ from red at the residues of ~120-155, so this might have something to do with mutations in chain A?
+
+# 11/5/25
+## Comparative analysis of protein structures
+
+starting with a sequence or structure ID (accession number) lets run a complete analysis pipeline
+
+```{r}
+library(bio3d)
+
+id <- "1ake_A"
+
+aa <- get.seq(id)
+aa
+```
+```{r, cache=TRUE}
+#blast <- blast.pdb(aa)
+#hits <- plot(blast)
+```
+
+```{r}
+hits <- NULL
+hits$pdb.id <- c('1AKE_A','6S36_A','6RZE_A','3HPR_A','1E4V_A','5EJE_A','1E4Y_A','3X2S_A','6HAP_A','6HAM_A','4K46_A','3GMT_A','4PZL_A')
+hits$pdb.id
+```
+
+Download all these "hits" that are similar to our starting id sequence
+```{r}
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+
+```{r}
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+```
+```{r}
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+```
+```{r}
+plot(pc.xray, 1:2)
+```
+```{r}
+mktrj(pc.xray, file="pca_results.pdb")
+```
+```{r}
+library(bio3dview)
+#view.pca(pc.xray)
+```
+
