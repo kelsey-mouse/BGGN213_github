@@ -1,0 +1,377 @@
+---
+title: "class07: machine learning1"
+author: "Kelsey Fierro"
+format: pdf
+---
+
+today we will begin our exploration of some classical machine learning approaches.  We will start with clustering:
+
+Lets first make up some data to cluster where we know what the answer should be!
+
+```{r}
+hist(rnorm(1000))
+```
+
+```{r}
+x <- c( rnorm(30, mean=-3), rnorm(30, mean=3) )
+y <- rev(x)
+
+x <- cbind(x, y)
+head(x)
+plot(x)
+```
+
+the main function in "base" R for K-means clustering is called 'kmeans()'
+
+```{r}
+k <- kmeans(x, centers = 2)
+```
+> Q. How big are the clusters (i.e their size)?
+
+```{r}
+k$size
+```
+
+> Q. What clusters do my data points reside in?
+
+```{r}
+k$cluster
+```
+
+> Q. Make a plot of our data colored by cluster assignment - i.e. make a result figure...
+
+```{r}
+plot(x, col=c("red", "blue"))
+```
+ 
+use k$cluster which has the distinction of the 2 clusters
+ 
+```{r}
+plot(x, col= k$cluster)
+points(k$centers, col="blue", pch=15)
+```
+
+>Q. Cluster with k-means into 4 clusters and plot your results as above.
+
+```{r}
+k4 <- kmeans(x, centers = 4)
+
+plot(x, col=k4$cluster)
+points(k4$centers, col="blue", pch=15)
+```
+
+>Q. Run kmeans with centers (i.e values of k) equal 1 to 6
+
+```{r}
+k1 <- kmeans(x, centers=1)$tot.withinss
+k2 <- kmeans(x, centers=2)$tot.withinss
+k3 <- kmeans(x, centers=3)$tot.withinss
+k4 <- kmeans(x, centers=4)$tot.withinss
+k5 <- kmeans(x, centers=5)$tot.withinss
+k6 <- kmeans(x, centers=6)$tot.withinss
+
+ans <- c(k1, k2, k3, k4, k5, k6)
+```
+
+or use a for loop
+
+```{r}
+ans <- NULL
+for(i in 1:6) {
+  ans <- c(ans, kmeans(x, centers=i)$tot.withinss)
+}
+ans
+```
+
+make a "scree-plot"
+
+```{r}
+plot(ans, typ="b")
+```
+
+
+##Hierarchial Clustering
+
+the main function in "base" R for this is called 'hclust()'
+
+```{r}
+d <- dist(x)
+hc <- hclust(d)
+hc
+```
+
+```{r}
+plot(hc)
+abline(h=7, col="red")
+```
+
+To obtain clusters from our 'hclust' result object **hc** we "cut" the tree to yield different sub branches.  For this we use the 'cutree()' function
+
+```{r}
+grps <- cutree(hc, h=7)
+grps
+```
+
+```{r}
+library(pheatmap)
+
+pheatmap(x)
+```
+
+## Principal Component Analysis PCA
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+dim(x)
+head(x)
+```
+
+# take out first row being the food categories
+
+```{r}
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+dim(x)
+```
+> Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+Using dim(), I found that there are 17 rows and 4 columns.
+
+> Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+To resolve the row-names problem I will use the rownames=1 method as the other method that blocks the first row will continue to take out the first row if that code is run multiple times afterwards.
+
+#using base R
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+```
+
+```{r}
+barplot(as.matrix(x), beside=F, col=rainbow(nrow(x)))
+```
+> Q3: Changing what optional argument in the above barplot() function results in the following plot?
+
+By changing the argument of "beside" to F, the barplot is changed to only 4 large bars compiled of smaller bars within.
+
+```{r}
+head(x)
+```
+```{r}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("tidyr")
+library(tidyr)
+#Convert data to long format for ggplot with 'pivot_longer()'
+x_long <- x |>
+  tibble::rownames_to_column("Food") |>
+  pivot_longer(cols = -Food,
+               names_to = "Country",
+               values_to = "Consumption")
+dim(x_long)
+```
+```{r}
+head(x_long)
+```
+```{r}
+library(ggplot2)
+ggplot(x_long) +
+  aes(x = Country, y = Consumption, fill = Food) +
+  geom_col(position = "dodge") +
+  theme_bw()
+```
+```{r}
+library(ggplot2)
+ggplot(x_long) +
+  aes(x = Country, y = Consumption, fill = Food) +
+  geom_col(position = "stack") +
+  theme_bw()
+```
+> Q4: Changing what optional argument in the above ggplot() code results in a stacked barplot figure?
+
+Changing the argument of position for the ggplot from dodge to stack resulted in a stacked barplot.
+
+```{r}
+pairs(x, col=rainbow(nrow(x)), pch=16)
+```
+> Q5: We can use the pairs() function to generate all pairwise plots for our countries. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+The points that lie outside of the diagonal are outliers, and when they all line up on the diagonal it indicates a positive and correlated relationship.
+
+```{r}
+library(pheatmap)
+pheatmap( as.matrix(x) )
+```
+> Q6. Based on the pairs and heatmap figures, which countries cluster together and what does this suggest about their food consumption patterns? Can you easily tell what the main differences between N. Ireland and the other countries of the UK in terms of this data-set?
+
+Based on the pairs, England and Wales are clustered together and have the most similar eating patterns.  Only after this pairing, is Scotland next as similar and then Northern Ireland is the least similar to the other countries.  Northern Ireland had a higher consumption of soft drinks and fresh potatoes when compared to the other countries.
+
+# PCA!!
+the main function in "base" R for PCA is called 'prcomp()'.
+As we want to do PCA on the food data for the different countries we will want the food in the columns -- transpose
+
+```{r}
+pca <- prcomp( t(x) )
+summary(pca)
+```
+our result object is called 'pca' and it has a '$x' component that we will look at first
+
+> Q7. Complete the code below to generate a plot of PC1 vs PC2. The second line adds text labels over the data points.
+
+```{r}
+pca$x
+library(ggplot2)
+
+ggplot(pca$x) + aes(PC1, PC2, label=rownames(pca$x)) + geom_point() + geom_text()
+```
+
+> Q8. Customize your plot so that the colors of the country names match the colors in our UK and Ireland map and table at start of this document.
+
+```{r}
+colors <- c("Wales" = "red", "England" = "blue", "Scotland" = "yellow", "N.Ireland" = "green")
+ggplot(pca$x) + 
+  aes(PC1, PC2, label=rownames(pca$x)) + 
+  geom_point() + 
+  geom_text() +
+  scale_color_manual(values = colors)
+```
+
+```{r}
+v <- round(pca$sdev^2/sum(pca$sdev^2) * 100)
+v
+```
+```{r}
+z <- summary(pca)
+z$importance
+```
+
+# Create scree plot with ggplot
+```{r}
+variance_df <- data.frame(
+  PC = factor(paste0("PC", 1:length(v)), levels = paste0("PC", 1:length(v))),
+  Variance = v
+)
+
+ggplot(variance_df) +
+  aes(x = PC, y = Variance) +
+  geom_col(fill = "steelblue") +
+  xlab("Principal Component") +
+  ylab("Percent Variation") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0))
+```
+# Lets focus on PC1 as it accounts for >90% of variance
+
+Another major result out of pca is the so-called 'variable loadings' or '$rotation' that tells us how the original variables (foods) contribute to PCs (ie our new axis) 
+
+```{r}
+pca$rotation
+```
+
+```{r}
+ggplot(pca$rotation) +
+  aes(x = PC1, y = reorder(rownames(pca$rotation), PC1)) + 
+  geom_col(fill = "steelblue") +
+  xlab("PC1 Loading Score") +
+  ylab("") +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 9))
+```
+
+> Q9: Generate a similar ‘loadings plot’ for PC2. What two food groups feature prominantely and what does PC2 maninly tell us about?
+
+```{r}
+ggplot(pca$rotation) +
+  aes(x = PC2, y = reorder(rownames(pca$rotation), PC2)) + 
+  geom_col(fill = "steelblue") +
+  xlab("PC1 Loading Score") +
+  ylab("") +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 9))
+```
+PC2 mainly tells us that soft drinks is the largest positive score, which probably refers to Scotland, and that fresh potatoes is still the largest negative score, again for N. Ireland.
+
+#PCA of RNA-seq data
+
+```{r}
+url2 <- "https://tinyurl.com/expression-CSV"
+rna.data <- read.csv(url2, row.names = 1)
+head(rna.data)
+```
+> Q9: How many genes and samples are in this data set?
+
+```{r}
+dim(rna.data)
+```
+There are 100 genes and 10 samples in this data set.
+
+# Transpose the data first then create data frame for plotting then plot with ggplot
+```{r}
+pca <- prcomp(t(rna.data), scale=TRUE)
+df <- as.data.frame(pca$x)
+df$Sample <- rownames(df)
+ggplot(df) +
+  aes(x = PC1, y = PC2, label = Sample) +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.5, size = 3) +
+  xlab("PC1") +
+  ylab("PC2") +
+  theme_bw()
+```
+
+```{r}
+summary(pca)
+```
+# Calculate variance, create scree plot
+
+```{r}
+pca.var <- pca$sdev^2
+pca.var.per <- round(pca.var/sum(pca.var) * 100, 1)
+scree_df <- data.frame(
+  PC = factor(paste0("PC", 1:10), levels = paste0("PC", 1:10)),
+  Variance = pca.var[1:10]
+)
+ggplot(scree_df) +
+  aes(x = PC, y = Variance) +
+  geom_col(fill = "steelblue") +
+  ggtitle("Quick scree plot") +
+  xlab("Principal Component") +
+  ylab("Variance") +
+  theme_bw()
+```
+## Percent variance is often more informative to look at as:
+
+```{r}
+pca.var.per
+```
+# Create percent variance scree plot
+```{r}
+scree_pct_df <- data.frame(
+  PC = factor(paste0("PC", 1:10), levels = paste0("PC", 1:10)),
+  PercentVariation = pca.var.per[1:10]
+)
+ggplot(scree_pct_df) +
+  aes(x = PC, y = PercentVariation) +
+  geom_col(fill = "steelblue") +
+  ggtitle("Scree Plot") +
+  xlab("Principal Component") +
+  ylab("Percent Variation") +
+  theme_bw()
+```
+# Making the main pca plot
+
+```{r}
+colvec <- colnames(rna.data)
+colvec[grep("wt", colvec)] <- "red"
+colvec[grep("ko", colvec)] <- "blue"
+df$condition <- substr(df$Sample, 1, 2)
+df$color <- colvec
+ggplot(df) +
+  aes(x = PC1, y = PC2, color = color, label = Sample) +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.5, hjust = 0.5, show.legend = FALSE) +
+  scale_color_identity() +
+  xlab(paste0("PC1 (", pca.var.per[1], "%)")) +
+  ylab(paste0("PC2 (", pca.var.per[2], "%)")) +
+  theme_bw()
+```
