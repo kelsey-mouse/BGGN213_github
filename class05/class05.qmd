@@ -1,7 +1,7 @@
 ---
 title: "class05: Data Visualization with GGPLOT"
 author: "Kelsey Fierro A14834315"
-format: pdf
+format: gfm
 ---
 
 ## Quarto
