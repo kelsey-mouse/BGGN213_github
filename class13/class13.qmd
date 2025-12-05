@@ -1,0 +1,211 @@
+---
+title: "Class 13: RNAseq mini project"
+author: "Kelsey Fierro"
+format: gfm
+---
+
+## Background
+
+Today we will run through a complete RNASeq analysis 
+
+The data for for hands-on session comes from GEO entry: GSE37704, which is associated with the following publication:
+
+Trapnell C, Hendrickson DG, Sauvageau M, Goff L et al. "Differential analysis of gene regulation at transcript resolution with RNA-seq". Nat Biotechnol 2013 Jan;31(1):46-53. PMID: 23222703
+
+## Data Import
+```{r}
+counts <- read.csv("GSE37704_featurecounts.csv",row.names = 1)
+metadata <- read.csv("GSE37704_metadata.csv")
+```
+
+check correspondance of 'metadata' and 'counts' (ie that the columns in )
+```{r}
+head(counts)
+```
+
+```{r}
+head(metadata)
+```
+```{r}
+metadata$id
+```
+
+Fix to remove that first "length" column of 'counts', if this first column is not out then there will be issues later!!
+```{r}
+counts <- as.matrix(counts[,-1])
+```
+
+remove the low counts
+
+```{r}
+tot.counts <- rowSums(counts)
+head(tot.counts)
+```
+```{r}
+zero.inds <- tot.counts == 0
+head(zero.inds)
+
+```
+```{r}
+counts <- counts[!zero.inds,]
+#counts <- as.matrix(counts[,-1])
+```
+
+
+```{r}
+test_cols <- all(colnames(counts)[-1] == metadata$id)
+```
+
+
+
+```{r}
+if( test_cols ) {
+  message("Wow... there is a problem with the metadata counts setup!")
+}
+```
+```{r}
+head(counts)
+```
+
+
+## Setup for DESeq
+
+```{r}
+library(DESeq2)
+```
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = metadata,
+                              design = ~condition)
+```
+
+## Run DESeq
+
+```{r}
+dds <- DESeq(dds)
+```
+
+
+## Get Results
+
+```{r}
+res <- results(dds)
+```
+
+## Add Annotation
+
+```{r}
+head(res)
+```
+
+## Visualize results
+
+```{r}
+plot( res$log2FoldChange, -log(res$padj))
+```
+```{r}
+library(ggplot2)
+
+ggplot(res) +
+  aes(log2FoldChange, -log(padj)) +
+  geom_point() +
+  geom_vline(xintercept = c(-2,2), col="red") +
+  geom_hline(yintercept = -log(0.05), col="red")
+```
+
+```{r}
+my_cols <- rep("gray", nrow(res))
+ggplot(res) +
+  aes(log2FoldChange, -log(padj)) +
+  geom_point(col=my_cols) +
+  geom_vline(xintercept = c(-2,2), col="red") +
+  geom_hline(yintercept = -log(0.05), col="red")
+```
+```{r}
+my_cols[ abs(res$log2FoldChange) > 2 ] <-  "blue"
+ggplot(res) +
+  aes(log2FoldChange, -log(padj)) +
+  geom_point(col=my_cols) +
+  geom_vline(xintercept = c(-2,2), col="red") +
+  geom_hline(yintercept = -log(0.05), col="red")
+```
+```{r}
+my_cols[abs(res$log2FoldChange) >= 2] <- "blue"
+res$padj >= 0.05
+ggplot(res) +
+  aes(log2FoldChange, -log(padj)) +
+  geom_point(col=my_cols) +
+  geom_vline(xintercept = c(-2,2), col="red") +
+  geom_hline(yintercept = -log(0.05), col="red")
+```
+
+
+## Pathway analysis
+
+```{r}
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+```
+```{r}
+#kegs.sets.hs = kegg.sets.hs[sigment.idx.hs]
+head(kegg.sets.hs, 3)
+```
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+```{r}
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+attributes(keggres)
+```
+```{r}
+head(keggres$less)
+```
+```{r}
+library(pathview)
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+# Lets try GO analysis
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+# Focus on Biological Process subset of GO
+gobpsets <-  go.sets.hs[go.subs.hs$BP]
+
+gobpres <-  gage(foldchanges, gsets=gobpsets, same.dir=TRUE)
+
+lapply(gobpres, head)
+```
+```{r}
+head( gobpres$less)
+```
+# Reactome
+
+some folks really like ractome online (ie their webpage viewer < (https://reactome.org/) ) rather than the R package of the same name (available from bioconductor)
+
+To use the website viewer we want to upload our set of gene symbols for the genes we want to focus on (here those with a P-value below 0.05)
+
+```{r}
+#sig_genes <- res[res$padj <- 0.05 & !is.na(res$padj), "symbol"]
+#write.table(sig_genes, file="significant_genes.txt",
+            #row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+
+## Save results
+
+```{r}
+write.csv(res, file="myresults.csv")
+```
+
+```{r}
+save(res, counts, metadata, file="my_results.RData")
+```
+
