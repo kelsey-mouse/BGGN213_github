@@ -4,7 +4,7 @@ Classwork for bioinformatics class at UC San Diego [BGGN213_at_UC_San_Diego] (ht
 
 ## Class content
 
-- Class 04: [R Fundamentals](/Users/kelseyfierro/Desktop/UCSD/bggn 213 - bioinformatics fall25/BGGN213_github/class04/class04.md)
+- Class 04: [R Fundamentals](/Users/kelseyfierro/Desktop/UCSD/bggn213-bioinformaticsfall25/BGGN213_github/class04/class04.md)
 - Class 05: [Data Viz with ggplot](class05/class05.md)
 - Class 07: [Machine learning for bioinformatics](class07/class07.md)
 - Class 08: [Unsupervised learning miniproject](class08/class08.md)
